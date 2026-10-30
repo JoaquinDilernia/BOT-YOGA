@@ -57,6 +57,8 @@ function AppRoutes() {
           <Route index element={<Navigate to="/agente/lista" replace />} />
           {AGENTE_SECTIONS.map(s => <Route key={s.path} path={s.path} element={<AgenteSection section={s.path} />} />)}
         </Route>
+        {/* Links guardados del panel viejo de TURNOS-YOGA (mismo dominio, yoga.techdi.com.ar) */}
+        {AGENTE_SECTIONS.map(s => <Route key={`old-${s.path}`} path={`/${s.path}`} element={<Navigate to={`/agente/${s.path}`} replace />} />)}
 
         <Route path="/" element={agent ? <Layout /> : <Navigate to="/login" replace />}>
           <Route index element={<Navigate to={homePath(agent?.role)} replace />} />
