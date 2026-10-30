@@ -29,7 +29,7 @@ export default function Login() {
     <div className={styles.page}>
       <div className={styles.card}>
         <div className={styles.logo}>T</div>
-        <h1 className={styles.title}>Entreno</h1>
+        <h1 className={styles.title}>Yoga y Patitas</h1>
         <p className={styles.subtitle}>Panel de administración</p>
         <form className={styles.form} onSubmit={handleSubmit}>
           <input

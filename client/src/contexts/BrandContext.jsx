@@ -3,7 +3,7 @@ import { useAuth } from './AuthContext';
 import { authFetch, BASE_URL } from '../lib/api';
 import { brandVars, normalizeHex, DEFAULT_BRAND } from '../lib/brand';
 
-const DEFAULTS = { botName: 'Entreno', brandColor: DEFAULT_BRAND, businessName: 'Entreno' };
+const DEFAULTS = { botName: 'Patitas', brandColor: DEFAULT_BRAND, businessName: 'Yoga y Patitas' };
 
 const BrandContext = createContext({ ...DEFAULTS, updateBrand: () => {} });
 

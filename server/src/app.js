@@ -22,9 +22,10 @@ import redirectRoutes from './routes/redirect.routes.js';
 import tiendanubeRoutes from './routes/tiendanube.routes.js';
 import mercadolibreRoutes from './routes/mercadolibre.routes.js';
 import mercadolibreWebhookRoutes from './routes/mercadolibre-webhook.routes.js';
+import agenteRoutes from './routes/agente.routes.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
-import { requireAuth, requireAtLeastAtencionCliente } from './middleware/requireAuth.js';
+import { requireAuth, requireAdmin, requireAtLeastAtencionCliente } from './middleware/requireAuth.js';
 import { reconcileBotCarts } from './services/botCart.service.js';
 import { closeIdleBotConversations } from './services/botAutoClose.js';
 
@@ -98,6 +99,7 @@ app.use('/api/areas',         requireAuth, areaRoutes);
 app.use('/api/campaigns',     requireAuth, requireAtLeastAtencionCliente, campaignRoutes);
 app.use('/api/tiendanube',    requireAuth, requireAtLeastAtencionCliente, tiendanubeRoutes);
 app.use('/api/mercadolibre',  requireAuth, requireAtLeastAtencionCliente, mercadolibreRoutes);
+app.use('/api/agente',        requireAuth, requireAdmin, agenteRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

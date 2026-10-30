@@ -19,6 +19,9 @@ import Areas         from './pages/Areas.jsx';
 import Users         from './pages/Users.jsx';
 import Customers     from './pages/Customers.jsx';
 import Campaigns     from './pages/Campaigns.jsx';
+import Hub           from './pages/Hub.jsx';
+import { AgenteProvider } from './agente/AgenteContext.jsx';
+import AgenteSection, { AGENTE_SECTIONS } from './agente/AgenteSection.jsx';
 
 export default function App() {
   return (
@@ -37,10 +40,24 @@ function AppRoutes() {
   setLogoutHandler(logout);
 
   if (loading) return null;
+  const isAdmin = agent?.role === 'admin';
 
   return (
     <Routes>
         <Route path="/login" element={agent ? <Navigate to={homePath(agent.role)} replace /> : <Login />} />
+
+        {/* Hub: los admins eligen entre el bot y el Agente (turnos, envíos y pauta de TURNOS-YOGA) */}
+        <Route path="/hub" element={!agent ? <Navigate to="/login" replace /> : isAdmin ? <Hub /> : <Navigate to={homePath(agent.role)} replace />} />
+        <Route
+          path="/agente"
+          element={!agent ? <Navigate to="/login" replace /> : isAdmin
+            ? <AgenteProvider><Layout area="agente" /></AgenteProvider>
+            : <Navigate to={homePath(agent.role)} replace />}
+        >
+          <Route index element={<Navigate to="/agente/lista" replace />} />
+          {AGENTE_SECTIONS.map(s => <Route key={s.path} path={s.path} element={<AgenteSection section={s.path} />} />)}
+        </Route>
+
         <Route path="/" element={agent ? <Layout /> : <Navigate to="/login" replace />}>
           <Route index element={<Navigate to={homePath(agent?.role)} replace />} />
           <Route path="dashboard"     element={<Dashboard />} />

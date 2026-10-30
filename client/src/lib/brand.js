@@ -1,4 +1,4 @@
-export const DEFAULT_BRAND = '#343535';
+export const DEFAULT_BRAND = '#6b8f6f';
 
 export function normalizeHex(value, fallback = DEFAULT_BRAND) {
   if (typeof value !== 'string') return fallback;

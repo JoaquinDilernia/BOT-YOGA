@@ -3,6 +3,8 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBrand } from '../../contexts/BrandContext';
 import { authFetch, BASE_URL } from '../../lib/api';
+import { useAgente } from '../../agente/AgenteContext.jsx';
+import { AGENTE_SECTIONS } from '../../agente/AgenteSection.jsx';
 import styles from './Layout.module.css';
 
 const COLLAPSED_KEY = 'bot_sidebar_collapsed';
@@ -52,6 +54,16 @@ const NAV_GROUPS = [
   ] },
 ];
 
+// Menú del Agente (turnos, envíos, pauta): las secciones que el backend del Agente tenga prendidas
+function agenteGroups(me) {
+  const items = AGENTE_SECTIONS
+    .filter(s => !s.needs || !me || me[s.needs])
+    .map(({ path, label, icon: Icon }) => ({ to: `/agente/${path}`, label, icon: ({ className }) => <Icon className={className} size={16} /> }));
+  return [{ id: 'agente', items }];
+}
+
+// Inicio (Hub) arriba de todo para quien puede elegir entre Bot y Agente
+const HOME_GROUP = { id: 'inicio', items: [{ to: '/hub', label: 'Inicio', icon: IconHome, minRole: 'admin' }] };
 
 export function canAccess(role, minRole) {
   if (!minRole) return true;
@@ -60,14 +72,22 @@ export function canAccess(role, minRole) {
   return true;
 }
 
-// Pantalla de entrada después del login: el Dashboard, o Conversaciones para
-// quien no tiene acceso al Dashboard (operadores).
-export function homePath(role) {
+// Pantalla del bot al entrar: el Dashboard, o Conversaciones para quien no
+// tiene acceso al Dashboard (operadores).
+export function botHomePath(role) {
   return canAccess(role, 'atencion_cliente') ? '/dashboard' : '/conversations';
 }
 
-export default function Layout() {
+// Después del login: los admins eligen en el Hub entre Bot y Agente; el resto va directo al bot.
+export function homePath(role) {
+  return role === 'admin' ? '/hub' : botHomePath(role);
+}
+
+// area: 'bot' (default) o 'agente' — mismo menú y estilo, distintas secciones.
+export default function Layout({ area = 'bot' }) {
   const { agent, logout } = useAuth();
+  const agente = useAgente();
+  const navGroups = [HOME_GROUP, ...(area === 'agente' ? agenteGroups(agente?.me) : NAV_GROUPS)];
   const { businessName } = useBrand();
   const navigate = useNavigate();
   const [awaiting, setAwaiting] = useState(0);
@@ -87,6 +107,7 @@ export default function Layout() {
 
   // Contador rojo de "esperando agente" en Conversaciones.
   useEffect(() => {
+    if (area !== 'bot') return undefined;
     let alive = true;
     async function load() {
       if (document.hidden) return; // pestaña oculta: no gastar consultas
@@ -100,7 +121,7 @@ export default function Layout() {
     load();
     const id = setInterval(load, AWAITING_POLL_MS);
     return () => { alive = false; clearInterval(id); };
-  }, []);
+  }, [area]);
 
   function closeMenu() { setMenuOpen(false); }
 
@@ -122,7 +143,7 @@ export default function Layout() {
           <div className={styles.brandLogo}>{(businessName || 'T').trim().charAt(0).toUpperCase()}</div>
           <div className={styles.brandText}>
             <span className={styles.brandName}>{businessName}</span>
-            <span className={styles.brandSub}>Bot Dashboard</span>
+            <span className={styles.brandSub}>{area === 'agente' ? 'Agente' : 'Bot de WhatsApp'}</span>
           </div>
         </div>
 
@@ -136,7 +157,7 @@ export default function Layout() {
         </button>
 
         <nav className={styles.nav}>
-          {NAV_GROUPS.map(group => {
+          {navGroups.map(group => {
             const items = group.items.filter(item => canAccess(agent?.role, item.minRole));
             if (!items.length) return null;
             // El grupo de la pantalla actual siempre se ve, aunque esté cerrado.
@@ -190,6 +211,15 @@ export default function Layout() {
         <Outlet />
       </main>
     </div>
+  );
+}
+
+function IconHome({ className }) {
+  return (
+    <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+    </svg>
   );
 }
 
