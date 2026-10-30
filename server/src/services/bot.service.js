@@ -20,7 +20,8 @@ import { getAllLabels, createLabel } from './label.service.js';
 import { getActiveAreas } from './area.service.js';
 import { getDb } from './firebase.service.js';
 import { toWaContactId } from './phone.js';
-import { findOrder, findOrdersByEmail, formatOrderStatus, searchProducts, searchProductsByCategory, formatStockInfo, formatProductsSummary, getProductById } from './tiendanube.service.js';
+import { findOrder, findOrdersByEmail, formatOrderStatus, getProductById, getPublishedProducts } from './tiendanube.service.js';
+import { buildClases, filterClases, formatClases } from './clases.js';
 import { createCartLink } from './cart.js';
 import { withCartUtm } from './cartAttribution.js';
 import { recordBotCart } from './botCart.service.js';
@@ -45,93 +46,6 @@ const ORDER_INTENT_NO_NUMBER_PATTERNS = [
   /mi\s+compra\b/i,
   /compr[eé]\s+(?:algo|un|una|el|la)\b/i,
 ];
-
-const STOCK_PATTERNS = [
-  /\bstock\b/i,
-  /\bdisponib/i,
-  /tienen\s+\w+/i,
-  /ten[eé]s\s+\w+/i,
-  /hay\s+(?:algún|alguna|algun|alguna)\b/i,
-  /\bqueda\b|\bquedan\b/i,
-  // Precio — se resuelve con la misma búsqueda a TiendaNube que stock,
-  // porque formatStockInfo/formatProductsSummary ya incluyen el precio.
-  /\bprecio/i,
-  /\bcuesta\b|\bcuestan\b/i,
-  /\bsale\b|\bsalen\b/i,
-  /\bvale\b|\bvalen\b/i,
-  /cu[aá]nto\s+(?:sale|cuesta|vale|est[aá])/i,
-];
-
-// Categorías reales del catálogo de TiendaNube de Entreno (relevadas via
-// GET /categories el 2026-09-17 — id fijo por categoría, no cambia salvo que
-// el cliente reorganice el árbol de categorías a mano en el admin de TN).
-// Mapeadas por sinónimo/jerga habitual de suplementos para no depender de
-// que el cliente escriba el nombre exacto del producto: buscar por
-// categoría trae TODO lo publicado ahí, a diferencia de la búsqueda por
-// texto (searchProducts) que solo matchea si la palabra está en el nombre.
-const CATEGORY_SYNONYMS = [
-  { re: /\bwhey\b/i, categoryId: 31492713 },              // WHEY PROTEIN
-  { re: /\bplant\s*prote[ií]na?\b|prote[ií]na\s+vegetal/i, categoryId: 31492714 }, // PLANT PROTEIN
-  { re: /\bprote[ií]nas?\b/i, categoryId: 31492528 },      // PROTEINAS (grupo completo)
-  { re: /\bcreatina\b/i, categoryId: 31492709 },
-  { re: /\bpre[\s-]?(entreno|workout)\b|\bpre[\s-]?intra\b/i, categoryId: 31493040 }, // PRE & INTRA ENTRENO
-  { re: /\bbcaas?\b|\beaas?\b|\baminos?\b|amino[aá]cidos?/i, categoryId: 31492710 },  // EEAs & BCAAs
-  { re: /\bpump\b|vasodilatador/i, categoryId: 31493043 },
-  { re: /\bquemador(es)?\b|quema\s*grasas?\b/i, categoryId: 31493051 },
-  { re: /\bl[\s-]?carnitina\b/i, categoryId: 31493053 },
-  { re: /\bcafeina\b/i, categoryId: 31492698 },
-  { re: /\bcla\b/i, categoryId: 31493116 },
-  { re: /\bglutamina\b/i, categoryId: 31492706 },
-  { re: /\bcol[aá]geno\b/i, categoryId: 31492711 },
-  { re: /\bmultivitam[ií]nico/i, categoryId: 31492704 },
-  { re: /\bvitaminas?\b/i, categoryId: 31492690 },         // VITAMINAS & SUPLEMENTOS (grupo)
-  { re: /\bomega\b|fish\s*oil/i, categoryId: 31493062 },
-  { re: /\bbarra(s)?\s+(de\s+)?prote[ií]na\b|protein\s*bars?/i, categoryId: 31493050 },
-  { re: /\bshaker\b|\bbotella\b/i, categoryId: 31493054 },
-  { re: /\bropa\b|\bremera\b|\bindumentaria\b/i, categoryId: 36439149 },
-  { re: /\bcintur[oó]n(es)?\b/i, categoryId: 38383183 },
-  { re: /\bmu[ñn]equera(s)?\b/i, categoryId: 38383184 },
-];
-
-function matchCategorySynonym(text) {
-  const hit = CATEGORY_SYNONYMS.find(({ re }) => re.test(text));
-  return hit?.categoryId ?? null;
-}
-
-const PRODUCT_INFO_PATTERNS = [
-  /\bsabor(es)?\b/i,
-  /\bpresentaci[oó]n\b/i,
-  /\bcomposici[oó]n\b/i,
-  /\bingrediente/i,
-  /\bc[oó]mo\s+se\s+toma\b/i,
-  /\bpara\s+qu[eé]\s+sirve\b/i,
-  /\bficha t[eé]cnica\b/i,
-  /\bmarca\b/i,
-];
-
-// La búsqueda `q=` de TiendaNube matchea contra el nombre del producto, no
-// hace fuzzy/semántico — se filtran preguntas/muletillas comunes para
-// quedarnos con lo que probablemente sea el nombre del producto.
-const QUERY_STOPWORDS = new Set([
-  'hola', 'buenas', 'buen', 'buenos', 'dia', 'día', 'dias', 'días', 'tardes', 'noches',
-  'de', 'del', 'que', 'qué', 'es', 'son', 'la', 'el', 'los', 'las', 'un', 'una', 'unos', 'unas',
-  'tiene', 'tienen', 'viene', 'vienen', 'se', 'o', 'hay', 'y', 'con', 'para', 'como', 'a', 'al',
-  'en', 'ya', 'está', 'esta', 'están', 'estan',
-  'cuál', 'cual', 'cuáles', 'cuales', 'cuanto', 'cuánto', 'sabor', 'sabores',
-  'porfavor', 'favor', 'por', 'me', 'podes', 'podés', 'puedes', 'decir', 'decime',
-  'saber', 'queria', 'quería', 'quiero', 'consulta', 'pregunta', 'gustaria', 'gustaría',
-  // Muletillas de precio/stock — no forman parte del nombre del producto.
-  'precio', 'precios', 'stock', 'disponible', 'disponibles', 'disponibilidad',
-  'cuesta', 'cuestan', 'sale', 'salen', 'vale', 'valen', 'queda', 'quedan',
-]);
-function cleanProductQuery(text) {
-  const words = (text ?? '')
-    .replace(/[¿?¡!.,]/g, ' ')
-    .split(/\s+/)
-    .filter(w => w && !QUERY_STOPWORDS.has(w.toLowerCase()));
-  const cleaned = words.join(' ').trim();
-  return cleaned || text;
-}
 
 // Returns true if current Argentina time is within business hours
 export function isWithinBusinessHours(botConfig = {}) {
@@ -419,11 +333,7 @@ async function processIncomingMessageInternal(msg) {
     setUrgentFlag(from, true).catch(() => {});
   }
 
-  const [orderContext, stockInfo, productInfo] = await Promise.all([
-    resolveOrderContext(text ?? '', customer, conversation),
-    resolveStockContext(text ?? ''),
-    resolveProductInfoContext(text ?? ''),
-  ]);
+  const orderContext = await resolveOrderContext(text ?? '', customer, conversation);
   const customerContext = buildCustomerContext(customer);
 
   if (orderContext.tnCustomer) {
@@ -450,15 +360,13 @@ async function processIncomingMessageInternal(msg) {
       orderInfo: orderContext.orderInfo,
       orderRef: orderContext.orderRef,
       orderFromCache: !!orderContext.fromCache,
-      stockInfo,
-      productInfo,
       customerContext,
       availableLabels: availableLabels.map(l => l.name),
       customerTags,
       botConfig,
       imageData,
       areas,
-      tools: [PRODUCT_SEARCH_TOOL, CART_TOOL],
+      tools: [CLASES_TOOL, CART_TOOL],
       runTool: (name, input) => runBotTool(name, input, { contactId: from }),
     });
   } catch (err) {
@@ -547,19 +455,19 @@ async function processIncomingMessageInternal(msg) {
   }
 }
 
-// resolveStockContext solo ve el último mensaje: si el cliente nombró el
-// producto antes ("quiero creatina star") y después pregunta "tienen stock?
-// 300 gr", busca "300 gr" y trae cualquier cosa. Con esta tool Claude arma la
-// búsqueda con el contexto de toda la charla y corrige typos.
-export const PRODUCT_SEARCH_TOOL = {
-  name: 'buscar_productos',
-  description: 'Busca productos en el catálogo online de Entreno (TiendaNube) y devuelve precio y disponibilidad por variante, en vivo. La búsqueda matchea contra el NOMBRE del producto, que suele ser "MARCA Tipo Tamaño" (ej: "STAR NUTRITION CREATINA MONOHIDRATO EEUU 300 GRS"). Usá palabras del nombre: marca, tipo de producto y tamaño.',
+// Las clases salen del catálogo de TiendaNube (cada producto es una fecha y
+// cada variante un horario, ver clases.js). El bot las consulta con esta tool
+// en vez de inyectarlas siempre en el prompt: solo cuando hace falta.
+export const CLASES_TOOL = {
+  name: 'buscar_clases',
+  description: 'Consulta EN VIVO en la tienda online las próximas clases (fecha, lugar, horarios y lugares libres por horario, precio y link para comprar) y los otros productos de la tienda (gift cards). Sin filtros trae las próximas clases desde hoy.',
   input_schema: {
     type: 'object',
     properties: {
-      consulta: { type: 'string', description: 'Palabras clave del producto, ej: "star creatina 300" o "whey gold nutrition"' },
+      desde: { type: 'string', description: 'Fecha mínima YYYY-MM-DD (opcional)' },
+      hasta: { type: 'string', description: 'Fecha máxima YYYY-MM-DD (opcional)' },
+      lugar: { type: 'string', description: 'Barrio o sede, ej "Palermo" (opcional)' },
     },
-    required: ['consulta'],
   },
 };
 
@@ -581,7 +489,7 @@ async function buildAndRecordCart(productos, contactId) {
 // cart.js las valida contra TiendaNube y arma el cart-link.
 export const CART_TOOL = {
   name: 'armar_carrito',
-  description: 'Arma un link al carrito de la tienda online con los productos ya cargados, para que el cliente solo tenga que calcular el envío y pagar. Usá producto_id y variante_id exactamente como los devuelve buscar_productos (o la sección PRECIO Y STOCK). Si algún producto no existe o no tiene stock, no arma nada y te dice por qué.',
+  description: 'Arma un link al carrito de la tienda online con los lugares ya cargados (cada variante es un horario de una clase; cantidad = cantidad de personas), para que el cliente solo complete sus datos y pague. Usá producto_id y variante_id exactamente como los devuelve buscar_clases. Si el horario no existe o no tiene lugares suficientes, no arma nada y te dice por qué.',
   input_schema: {
     type: 'object',
     properties: {
@@ -592,7 +500,7 @@ export const CART_TOOL = {
           type: 'object',
           properties: {
             producto_id: { type: 'integer' },
-            variante_id: { type: 'integer', description: 'La variante elegida (sabor/tamaño)' },
+            variante_id: { type: 'integer', description: 'El horario elegido' },
             cantidad: { type: 'integer', minimum: 1 },
           },
           required: ['producto_id', 'variante_id', 'cantidad'],
@@ -603,89 +511,15 @@ export const CART_TOOL = {
   },
 };
 
-const TOOL_PRODUCT_LIMIT = 15;
+const DATE_RE = /^d{4}-d{2}-d{2}$/;
 
 export async function runBotTool(name, input, { contactId = null } = {}) {
   if (name === 'armar_carrito') return buildAndRecordCart(input?.productos, contactId);
-  if (name !== 'buscar_productos') return { error: `Herramienta desconocida: ${name}` };
-  const consulta = String(input?.consulta ?? '').trim();
-  if (!consulta) return { error: 'Falta la consulta' };
-
-  let products = await searchProducts(consulta);
-  // Si la búsqueda por texto no trae nada pero la consulta nombra un rubro
-  // conocido (creatina, whey…), el rubro completo sirve de respaldo.
-  if (!products.length) {
-    const categoryId = matchCategorySynonym(consulta);
-    if (categoryId) products = await searchProductsByCategory(categoryId);
-  }
-  if (!products.length) return { resultado: `No se encontraron productos para "${consulta}".` };
-
-  // TiendaNube no ordena por relevancia: los que contienen más palabras de la
-  // consulta van primero, así "star creatina 300" no queda tapado por otros.
-  const words = consulta.toLowerCase().split(/\s+/).filter(w => w.length > 1);
-  const nameOf = p => (typeof p.name === 'string' ? p.name : (p.name?.es ?? Object.values(p.name ?? {})[0] ?? '')).toLowerCase();
-  const score = p => words.filter(w => nameOf(p).includes(w)).length;
-  products = [...products].sort((a, b) => score(b) - score(a));
-
-  return { resultado: formatProductsSummary(products, TOOL_PRODUCT_LIMIT) };
-}
-
-async function resolveStockContext(text) {
-  if (!text) return null;
-  const categoryId = matchCategorySynonym(text);
-  if (!categoryId && !STOCK_PATTERNS.some(re => re.test(text))) return null;
-
-  try {
-    // Si el mensaje matchea una categoría conocida (ej. "pre-entreno",
-    // "bcaa"), traer TODO lo publicado ahí es más confiable que buscar por
-    // texto — no depende de que el nombre del producto contenga la palabra
-    // que usó el cliente. Si no hay categoría o no trajo nada, cae a la
-    // búsqueda por texto de siempre.
-    let products = categoryId ? await searchProductsByCategory(categoryId) : [];
-    if (!products.length) products = await searchProducts(cleanProductQuery(text));
-    if (!products.length) return null;
-
-    // Consulta puntual a un solo producto vs. consulta amplia por categoría/
-    // marca que matchea varios — en ese caso se le pasa a Claude el
-    // precio+stock de todos, no solo el primero.
-    const info = products.length === 1 ? formatStockInfo(products[0]) : formatProductsSummary(products);
-    if (!info) return null;
-    return `${info}\n\nEl cliente también puede confirmar precio y stock actualizado en el link de cada producto.`;
-  } catch (err) {
-    console.error('[bot] resolveStockContext error:', err.message);
-    return null;
-  }
-}
-
-// Quita el <link> de Google Fonts y las etiquetas HTML que TiendaNube guarda
-// en la descripción del producto, dejando texto plano legible para el prompt.
-function stripProductDescriptionHtml(html) {
-  return html
-    .replace(/<link[^>]*>/gi, '')
-    .replace(/<\/?(p|div|li|h[1-6])[^>]*>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\n{2,}/g, '\n')
-    .trim();
-}
-
-async function resolveProductInfoContext(text) {
-  if (!text || !PRODUCT_INFO_PATTERNS.some(re => re.test(text))) return null;
-
-  try {
-    const products = await searchProducts(cleanProductQuery(text));
-    if (!products?.length) return null;
-    const p = products[0];
-
-    const name = typeof p.name === 'string' ? p.name : (p.name?.es ?? p.name?.en ?? Object.values(p.name ?? {})[0] ?? 'Producto');
-    const rawDesc = p.description?.es ?? p.description?.en ?? Object.values(p.description ?? {})[0] ?? '';
-    const cleanDesc = rawDesc ? stripProductDescriptionHtml(rawDesc) : '';
-    if (!cleanDesc) return null;
-
-    return `Producto: ${name}\n${cleanDesc}`;
-  } catch (err) {
-    console.error('[bot] resolveProductInfoContext error:', err.message);
-    return null;
-  }
+  if (name !== 'buscar_clases') return { error: `Herramienta desconocida: ${name}` };
+  const desde = DATE_RE.test(input?.desde ?? '') ? input.desde : undefined;
+  const hasta = DATE_RE.test(input?.hasta ?? '') ? input.hasta : undefined;
+  const { clases, otros } = buildClases(await getPublishedProducts());
+  return { hoy: new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), resultado: formatClases(filterClases(clases, { desde, hasta, lugar: input?.lugar }), otros) };
 }
 
 /**

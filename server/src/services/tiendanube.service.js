@@ -322,6 +322,33 @@ export async function searchProductsByCategory(categoryId) {
   }
 }
 
+// Catálogo completo publicado (clases + gift cards): es chico, se trae entero
+// y se cachea un minuto para que varios chats a la vez no multipliquen requests.
+const CATALOG_TTL_MS = 60 * 1000;
+let catalogCache = null;
+
+/**
+ * Todos los productos publicados, con variantes (stock = lugares libres).
+ * @returns {Promise<Array>}
+ */
+export async function getPublishedProducts() {
+  if (catalogCache && Date.now() - catalogCache.at < CATALOG_TTL_MS) return catalogCache.data;
+  const all = [];
+  for (let page = 1; page <= 10; page++) {
+    let data;
+    try {
+      ({ data } = await client.get('/products', { params: { published: true, fields: PRODUCT_FIELDS, per_page: 200, page } }));
+    } catch (err) {
+      if (err.response?.status === 404 && page > 1) break; // TN responde 404 pasada la última página
+      throw err;
+    }
+    all.push(...(data ?? []));
+    if (!data || data.length < 200) break;
+  }
+  catalogCache = { at: Date.now(), data: all };
+  return all;
+}
+
 /**
  * Recorre TODOS los pedidos de la tienda paginando, y los agrupa por cliente.
  * Se usa para el sync masivo de contactos (traer a todos los que compraron y

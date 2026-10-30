@@ -155,14 +155,23 @@ export async function generateConversationSummary(messages) {
   return extractText(response);
 }
 
+// Defaults si el doc de config no existe (los usa también config.routes.js)
+export const DEFAULT_BOT_NAME = 'Patitas';
+export const DEFAULT_BUSINESS_NAME = 'Yoga y Patitas';
+export const DEFAULT_PERSONALITY = `Sos el asistente virtual de Yoga y Patitas: clases de yoga con perritos. Respondés consultas sobre las clases, fechas, horarios, lugares disponibles, gift cards y compras.
+Tenés una onda cálida, alegre y cercana — como alguien del equipo al que le encantan los perros — sin exagerar con los emojis (uno de vez en cuando, 🐶🧘 van bien). Vas al grano.
+Usás español rioplatense (vos, etc.). Nunca sonás robótico ni genérico.
+Si no sabés algo, lo decís honestamente y ofrecés derivar a alguien del equipo.
+Nunca inventás información sobre clases, fechas, horarios, lugares, precios, pedidos o los perritos — solo usás los datos que te den.`;
+
 export async function generateBotResponse(userMessage, conversationHistory, context = {}) {
   const {
-    knowledgeBase = '', orderInfo = null, orderRef = null, orderFromCache = false, stockInfo = null, productInfo = null,
+    knowledgeBase = '', orderInfo = null, orderRef = null, orderFromCache = false,
     customerContext = null, availableLabels = [], customerTags = [], botConfig = {}, imageData = null, areas = [],
     tools = [], runTool = null,
   } = context;
 
-  const systemContent = buildSystemPrompt(botConfig, knowledgeBase, orderInfo, orderRef, stockInfo, productInfo, customerContext, availableLabels, areas, customerTags, tools.length > 0, orderFromCache);
+  const systemContent = buildSystemPrompt(botConfig, knowledgeBase, orderInfo, orderRef, customerContext, availableLabels, areas, customerTags, tools.length > 0, orderFromCache);
   const messages = buildMessages(conversationHistory, userMessage, imageData);
 
   // Loop de tool-use (mismo patrón que Selvaggio): mientras Claude pida tools,
@@ -207,20 +216,15 @@ export async function generateBotResponse(userMessage, conversationHistory, cont
 
 const MAX_TOOL_ROUNDS = 4;
 
-function buildSystemPrompt(botConfig = {}, knowledgeBase, orderInfo, orderRef, stockInfo, productInfo, customerContext, availableLabels = [], areas = [], customerTags = [], hasProductTool = false, orderFromCache = false) {
-  const botName = botConfig.botName || 'Entreno';
-  const businessName = botConfig.businessName || 'Entreno';
-  const personality = botConfig.botPersonality ||
-    `Sos el asistente virtual de Entreno (yogaypatitas.com.ar), tienda online de suplementos deportivos, nutrición y indumentaria fitness.
-Tenés una onda cercana y motivadora, como alguien del equipo que también entrena. Vas al grano.
-Usás español rioplatense (vos, etc.) con calidez y profesionalismo. Nunca sonás robótico ni genérico.
-Si no sabés algo, lo decís honestamente y ofrecés derivar a la persona correcta.
-Nunca inventás información sobre productos, precios, stock, pedidos, envíos o marcas — solo usás los datos que te den. Si algo no está en la información que tenés, lo decís honestamente en vez de inventar o suponer.`;
+function buildSystemPrompt(botConfig = {}, knowledgeBase, orderInfo, orderRef, customerContext, availableLabels = [], areas = [], customerTags = [], hasClasesTool = false, orderFromCache = false) {
+  const botName = botConfig.botName || DEFAULT_BOT_NAME;
+  const businessName = botConfig.businessName || DEFAULT_BUSINESS_NAME;
+  const personality = botConfig.botPersonality || DEFAULT_PERSONALITY;
 
   let prompt = `Sos el asistente virtual de ${businessName}. Tu nombre es ${botName}.\n${personality}`;
   // Fuera de `personality` a propósito: botPersonality se puede pisar desde
   // el panel y estas reglas tienen que valer siempre.
-  prompt += `\n\nREGLA — SOLO ASISTÍS, NO VENDÉS: Por este chat no se vende, no se reservan ni se apartan productos y no se toman pedidos. Las compras se hacen únicamente en la web (yogaypatitas.com.ar). Nunca ofrezcas reservar, separar, guardar o "anotar" un producto, ni tomar un pedido por acá — si el cliente quiere comprar, mandale el link del producto o, si tenés la herramienta armar_carrito, el link del carrito armado: la compra igual la termina él en la web.`;
+  prompt += `\n\nREGLA — LOS LUGARES SE COMPRAN EN LA WEB: Por este chat no se reservan, apartan ni guardan lugares y no se toman pagos. Las clases (y las gift cards) se compran únicamente en la tienda online. Nunca digas que "anotaste" a alguien ni que le guardás un lugar — si quiere ir, mandale el link de la clase o, mejor, el carrito armado con armar_carrito: la compra la termina en la web y ahí queda confirmado su lugar.`;
   prompt += `\n\nFORMATO: Escribís para WhatsApp. Para negrita usá UN solo asterisco (*así*), nunca dos (**así**) — no uses títulos con # ni otro markdown.`;
   prompt += buildEscalationInstructions(areas);
   prompt += `\n\nIMPORTANTE — MENSAJES DEL EQUIPO: Los mensajes que empiezan con "${AGENT_PREFIX}" los escribió alguien del equipo, no vos. Tomá lo que dicen como hecho (si dicen que ya resolvieron algo, está resuelto). Si el cliente solo agradece o confirma algo que el equipo ya resolvió, no vuelvas a derivar: respondé corto y cerrá con [CERRAR]. Nunca repitas ese prefijo en tu respuesta.`;
@@ -242,53 +246,30 @@ Nunca inventás información sobre productos, precios, stock, pedidos, envíos o
       ? `\n\nEste es el pedido del que se viene hablando en esta conversación (consultado en Tienda Nube hace un rato). Seguí usándolo con normalidad: no te desdigas de lo que ya le informaste al cliente.`
       : `\n\nEsta información se acaba de consultar en este mismo turno y es la más actualizada que existe. Si en mensajes anteriores dijiste que no encontrabas el pedido, ESO YA NO APLICA — ahora sí lo tenés, usalo con normalidad.`;
     dyn += `\n\nGuía para interpretar el pedido:
-- pago "pagado" + envio "enviado" → en camino, compartí el tracking si hay.
-- pago "pagado" + envio "en preparación" o "pendiente de preparación" → se está preparando, próximamente se envía.
-- pago "pagado" + envio "entregado" → ya fue entregado.
-- pago "pendiente de pago" → falta confirmar el pago.
-- estado "cancelado" → pedido cancelado, derivar si preguntan por reembolso.
-- tipoEntrega "retiro" → el cliente retira el pedido, no aplica tracking de courier.
-- Si hay tracking, compartilo directamente sin que lo pida.
+- Cada pedido es una compra de lugares para una clase (fecha y horario en los productos) o una gift card.
+- pago "pagado" → la compra está confirmada y el lugar es suyo; la entrada le llega por mail al email de la compra (si no la ve, que revise spam/promociones).
+- pago "pendiente de pago" → el lugar todavía no está confirmado: falta acreditar el pago.
+- estado "cancelado" o pago "anulado"/"reembolsado" → no tiene lugar; si pregunta por la devolución, derivá.
+- Ignorá cualquier dato de envío o tracking: acá no se envía nada físico.
 - Si hay nota en el pedido, tenerla en cuenta para dar contexto.`;
   } else if (orderRef) {
     dyn += `\n\n--- BÚSQUEDA DE PEDIDO "#${orderRef}" ---\nSe intentó buscar este pedido en Tienda Nube AHORA MISMO y NO se encontró ningún resultado. No existe. No inventes un número, fecha, cliente o producto alternativo por más que "te suene" a algo — decile honestamente al cliente que no lo encontraste. Pedile que confirme bien el número de pedido, o como alternativa el email con el que compró.`;
   }
-  if (stockInfo) {
-    dyn += `\n\n--- PRECIO Y STOCK DEL PRODUCTO ---\n${stockInfo}`;
-    dyn += `\n\nGuía para responder con esta información:
-- El precio SÍ se comparte tal cual figura acá (incluido el precio con descuento si aparece "antes $X"). Nunca lo inventes ni lo redondees.
-- Si aparecen varios productos, elegí los relevantes a la consulta del cliente — no hace falta leerle los 8 si preguntó por uno puntual.
-- "Disponible" → hay stock.
-- "Quedan pocas unidades" → puede agotarse pronto, avisale al cliente.
-- "Sin stock" → no disponible al momento de la consulta.
-- Nunca menciones cantidades numéricas — solo usás las etiquetas anteriores.
-- Siempre agregá el disclaimer: "El stock puede variar por las ventas de la tienda."`;
-  }
-  if (hasProductTool) {
-    prompt += `\n\n--- BUSCAR PRODUCTOS (precio y stock) ---
-Tenés la herramienta buscar_productos, que consulta el catálogo de la tienda online EN VIVO (precio y stock por variante).
-- Usala SIEMPRE que el cliente pregunte por stock, precio o disponibilidad de un producto y ese producto puntual NO esté en "PRECIO Y STOCK DEL PRODUCTO" (esa sección se arma solo con el último mensaje y puede traer productos que no tienen nada que ver).
-- Armá la consulta con TODO el contexto de la charla: marca + tipo de producto + tamaño, aunque cada dato lo haya dicho en un mensaje distinto (ej: dijo "quiero creatina star" y después "tienen stock? 300 gr" → consulta "star creatina 300").
-- Corregí errores de tipeo obvios (ej: "creativa" → "creatina").
-- Si no encuentra nada, probá una vez con menos palabras (ej: solo marca + tipo) antes de decir que no lo tenés.
-- Nunca digas que no tenés el dato de stock sin haber usado la herramienta.
-- Las mismas reglas de arriba aplican al resultado: etiquetas (Disponible / Quedan pocas unidades / Sin stock), nunca cantidades, precio tal cual figura.
+  if (hasClasesTool) {
+    prompt += `\n\n--- CLASES (fechas, horarios y lugares) ---
+Tenés la herramienta buscar_clases, que consulta la tienda online EN VIVO: próximas clases con fecha, lugar, horarios, lugares libres, precio y link.
+- Usala SIEMPRE que pregunten cuándo hay clases, horarios, si quedan lugares, dónde son o cuánto salen. Nunca digas fechas, horarios, lugares libres ni precios de memoria o de mensajes viejos: consultá.
+- Si preguntan por un día o un mes puntual, pasá desde/hasta (YYYY-MM-DD). La herramienta te dice qué día es hoy.
+- "Completa" = no quedan lugares en ese horario: ofrecé otro horario u otra fecha. "Quedan N lugares" se puede decir tal cual (ayuda a que no se lo pierdan); con "Hay lugares" no digas cantidades.
+- Si no hay clases publicadas para lo que busca, decilo y contale que las fechas nuevas se publican en la tienda; no inventes próximas fechas.
+- Mostrá las opciones cortas y claras: fecha, lugar y horarios con lugares, sin listar todo si preguntó por algo puntual.
 
 --- LINKS Y CARRITO ---
-- Cada producto trae "Link:" — cuando recomendás o informás un producto puntual, pasá su link tal cual (nunca lo inventes ni lo armes vos). Si son varios productos en una lista, un link por producto.
+- Cada clase trae "Link:" — pasalo tal cual cuando informás una clase (nunca lo inventes ni lo armes vos).
 - [producto_id …] y [variante_id …] son de uso interno: nunca se los muestres al cliente.
-- Si el cliente quiere comprar, pide "el link para comprar", o le armaste una selección/combo y está de acuerdo, usá armar_carrito con TODOS los productos juntos y mandale ese único link.
-- Antes de armar el carrito confirmá la variante (sabor/tamaño) de cada producto que tenga más de una, y la cantidad si no es 1. Solo variantes con stock.
-- Al mandar el link del carrito: listá lo que lleva, y avisale que al abrirlo ponga su código postal para calcular el envío y elegir cómo recibirlo antes de pagar. Ej: "Te dejo el carrito armado 👉 <link>" y en la línea siguiente "Al abrirlo poné tu código postal para calcular el envío y elegí cómo recibirlo."
-- Si armar_carrito devuelve un error (sin stock, etc.), contale al cliente qué pasó con ese producto y ofrecé una alternativa; no mandes un carrito incompleto sin avisar.
-- Ojo: cada vez que se abre, el link SUMA sus productos a lo que ya haya en el carrito (abrirlo dos veces duplica las cantidades) y nunca saca nada. Por eso:
-  - Si después quiere agregar productos, armá un carrito SOLO con lo nuevo y aclarale que se suma a lo que ya tiene.
-  - Si cambia sabor o cantidad, o quiere sacar algo, no mandes otro link: decile que lo ajuste en el carrito (con − / + o el tachito).
-  - Si te dice que le aparecen cantidades de más, explicale que es porque abrió el link más de una vez y que lo corrija con − o el tachito.`;
-  }
-  if (productInfo) {
-    dyn += `\n\n--- FICHA DEL PRODUCTO ---\n${productInfo}`;
-    dyn += `\n\nUsá esta ficha para responder preguntas sobre el producto (marca, presentación, sabor, uso, etc). Si la descripción no cubre lo que te preguntan, decilo honestamente en vez de inventar.`;
+- Cuando el cliente elige fecha y horario, preguntale para cuántas personas (si no lo dijo) y usá armar_carrito con esa variante (horario) y la cantidad de lugares. Mandale ese link: "Te dejo el carrito listo 👉 <link>" y en la línea siguiente que al abrirlo complete sus datos y pague para confirmar su lugar.
+- Si armar_carrito devuelve un error (sin lugares para esa cantidad, etc.), contale qué pasó y ofrecé otro horario o fecha.
+- Ojo: cada vez que se abre, el link SUMA lo que trae al carrito (abrirlo dos veces duplica). Si cambia de horario o cantidad, no mandes otro link: decile que lo ajuste en el carrito (con − / + o el tachito), o que lo vacíe y le armás uno nuevo.`;
   }
   if (availableLabels.length) {
     prompt += `\n\n--- ETIQUETAS ---\nDEBÉS etiquetar SIEMPRE esta conversación con al menos 1 etiqueta usando [LABEL:nombre] en tu respuesta (invisible para el cliente).
@@ -310,10 +291,10 @@ Podés combinar varias etiquetas si aplica.`;
     const existing = (customerTags || []).filter(Boolean);
     prompt += `\n\n--- TAGS DE CONTACTO ---
 Si en el mensaje aparece una señal CLARA sobre quién es este cliente, agregale un tag con [TAG:nombre] (invisible para el cliente). NO inventes si no hay señal — es opcional.
-Categorías (basadas en el catálogo real de Entreno):
-- Interés de producto: Whey Protein, Plant Protein, Creatina, Pre-entreno, BCAA/EAA, Quemadores, Glutamina, Colágeno, Vitaminas, Ropa.
-- Objetivo: Ganar masa muscular, Perder grasa, Mejorar entrenamiento, Salud & bienestar, Aumentar energía.
-- Comportamiento: Recurrente, Primera compra, Reclamó, Alto gasto.`;
+Categorías:
+- Interés: Clase con perritos, Gift card, Cumpleaños / evento privado, Empresas.
+- Perfil: Primera vez, Ya vino a una clase, Viene con amigos, Tiene perro.
+- Comportamiento: Recurrente, Reclamó.`;
     if (existing.length) prompt += `\nTags que ya se usan (reusá estos si aplican, respetando cómo están escritos): ${existing.join(', ')}.`;
     prompt += `\nSi ninguno encaja y la señal es clara, creá uno con [NEW_TAG:nombre].`;
     if (guide) prompt += `\nGuía del negocio:\n${guide}`;

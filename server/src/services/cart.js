@@ -51,7 +51,7 @@ export async function createCartLink(rawItems, getProduct) {
     const variantId = Number(it?.variante_id);
     const quantity = Math.trunc(Number(it?.cantidad ?? 1));
     if (!Number.isInteger(productId) || productId <= 0 || !Number.isInteger(variantId) || variantId <= 0) {
-      return { error: 'Cada producto necesita producto_id y variante_id numéricos, tal como los devuelve buscar_productos.' };
+      return { error: 'Cada producto necesita producto_id y variante_id numéricos, tal como los devuelve buscar_clases.' };
     }
     if (!(quantity >= 1)) return { error: `Cantidad inválida para la variante ${variantId}.` };
     const prev = merged.get(variantId);
