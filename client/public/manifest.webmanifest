@@ -1,13 +1,13 @@
 {
-  "name": "Entreno — Panel",
-  "short_name": "Entreno",
-  "description": "Panel de administración del bot de Entreno",
+  "name": "Yoga y Patitas — Panel",
+  "short_name": "Yoga y Patitas",
+  "description": "Panel de administración de Yoga y Patitas",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f5f2ee",
-  "theme_color": "#1e1f1f",
+  "theme_color": "#263028",
   "icons": [
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
