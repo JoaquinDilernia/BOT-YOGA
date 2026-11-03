@@ -1,5 +1,5 @@
 import { parseReasonMarker } from './escalationReasons.js';
-import { generateBotResponse } from './claude.service.js';
+import { generateBotResponse, BOT_AUTONOMOUS } from './claude.service.js';
 import { endsWithQuestion } from './closeGuard.js';
 import { getKnowledgeBasePrompt } from './knowledge.service.js';
 import {
@@ -371,7 +371,9 @@ async function processIncomingMessageInternal(msg) {
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);
-    const fallbackMsg = 'Estamos con un poquito de demora en este momento, ¡ya te contestamos! 🙏';
+    const fallbackMsg = BOT_AUTONOMOUS
+      ? 'Uy, se me complicó responderte recién 🙏 ¿Me escribís de nuevo en un ratito? Mientras tanto tenés fechas y entradas en www.yogaypatitas.com'
+      : 'Estamos con un poquito de demora en este momento, ¡ya te contestamos! 🙏';
     await appendMessage(from, { role: 'assistant', content: fallbackMsg });
     await setUrgentFlag(from, true).catch(() => {});
     if (channel === 'whatsapp') await sendWhatsAppMessage(from, fallbackMsg).catch(() => {});
@@ -381,7 +383,10 @@ async function processIncomingMessageInternal(msg) {
   console.log(`[bot] Claude respondió (${botReply.length} chars) para ${from}`);
 
   const { reason: escalationReason, detail: escalationDetail, cleanText: textAfterReason } = parseReasonMarker(botReply);
-  const { shouldEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
+  const { shouldEscalate: wantsEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
+  // Bot 100% autónomo: el marcador se limpia del texto pero nunca pasa a humano.
+  const shouldEscalate = wantsEscalate && !BOT_AUTONOMOUS;
+  if (wantsEscalate && BOT_AUTONOMOUS) console.log(`[bot] [ESCALAR] ignorado para ${from}: bot autónomo`);
   const { shouldClose: closeMarker, cleanText: textAfterClose } = parseCloseMarker(textAfterEscalation);
   const { labels: botLabels, newLabels: botNewLabels, cleanText: textAfterLabels } = parseLabelMarkers(textAfterClose);
   const { tags: botTags, newTags: botNewTags, cleanText: textAfterTags } = parseCustomerTagMarkers(textAfterLabels);
@@ -511,7 +516,7 @@ export const CART_TOOL = {
   },
 };
 
-const DATE_RE = /^d{4}-d{2}-d{2}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export async function runBotTool(name, input, { contactId = null } = {}) {
   if (name === 'armar_carrito') return buildAndRecordCart(input?.productos, contactId);

@@ -64,6 +64,22 @@ Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando
 Usá [CERRAR] solo cuando estés seguro de que la conversación terminó. Si tu respuesta termina con una pregunta ("¿Te ayudo con algo más?", "¿buscás algo específico?"), NO uses [CERRAR] — estás esperando que el cliente conteste.`;
 }
 
+// Yoga y Patitas pidió un bot 100% autónomo (2026-11-03): nadie contesta a
+// mano en este chat. El bot no escala nunca; lo administrativo va por mail
+// (ver KB). bot.service ignora cualquier [ESCALAR] que igual aparezca.
+export const BOT_AUTONOMOUS = true;
+
+const AUTONOMOUS_INSTRUCTIONS = `
+
+IMPORTANTE — SOS EL ÚNICO QUE ATIENDE ESTE CHAT: No hay personas del equipo respondiendo por acá, así que nunca digas que vas a derivar, que "te paso con alguien", que "el equipo te va a escribir" ni que alguien lo va a contactar. Resolvé vos todo con la información de la empresa y las herramientas.
+- Si es un tema que se gestiona por otro canal (devoluciones, cambios de fecha, no poder asistir, entrada que no llegó, cumpleaños/eventos, colaboraciones), explicale lo que corresponde y pasale ese canal (el mail) con los datos que tiene que mandar.
+- Si pide hablar con una persona o está enojado, mostrá empatía, ayudalo en lo que puedas y pasale el mail hola@yogaypatitas.com para que lo vea el equipo.
+- Si no tenés la información, decilo con honestidad y dale lo más útil: la web o el mail.
+- Siempre que se pueda, llevá la charla hacia la compra: fechas con buscar_clases y el carrito con armar_carrito.
+
+IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR]. Si tu respuesta termina con una pregunta, NO uses [CERRAR] — estás esperando que el cliente conteste.
+Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."`;
+
 // Extrae el texto de la respuesta recorriendo los bloques de `content` en vez
 // de asumir que el bloque [0] es siempre de tipo texto — con claude-sonnet-5,
 // un system prompt largo (como el de este bot) le hace anteponer un bloque
@@ -226,7 +242,7 @@ function buildSystemPrompt(botConfig = {}, knowledgeBase, orderInfo, orderRef, c
   // el panel y estas reglas tienen que valer siempre.
   prompt += `\n\nREGLA — LOS LUGARES SE COMPRAN EN LA WEB: Por este chat no se reservan, apartan ni guardan lugares y no se toman pagos. Las clases (y las gift cards) se compran únicamente en la tienda online. Nunca digas que "anotaste" a alguien ni que le guardás un lugar — si quiere ir, mandale el link de la clase o, mejor, el carrito armado con armar_carrito: la compra la termina en la web y ahí queda confirmado su lugar.`;
   prompt += `\n\nFORMATO: Escribís para WhatsApp. Para negrita usá UN solo asterisco (*así*), nunca dos (**así**) — no uses títulos con # ni otro markdown.`;
-  prompt += buildEscalationInstructions(areas);
+  prompt += BOT_AUTONOMOUS ? AUTONOMOUS_INSTRUCTIONS : buildEscalationInstructions(areas);
   prompt += `\n\nIMPORTANTE — MENSAJES DEL EQUIPO: Los mensajes que empiezan con "${AGENT_PREFIX}" los escribió alguien del equipo, no vos. Tomá lo que dicen como hecho (si dicen que ya resolvieron algo, está resuelto). Si el cliente solo agradece o confirma algo que el equipo ya resolvió, no vuelvas a derivar: respondé corto y cerrá con [CERRAR]. Nunca repitas ese prefijo en tu respuesta.`;
   if (knowledgeBase) {
     prompt += `\n\n--- INFORMACIÓN DE LA EMPRESA ---\n${knowledgeBase}`;
