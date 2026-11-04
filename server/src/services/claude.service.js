@@ -31,8 +31,8 @@ function logUsage(usage, type) {
 
 // Yoga y Patitas (2026-11-04): nada se manda al mail. El bot resuelve lo que
 // puede y lo difícil (cumpleaños, devoluciones, cambios, reclamos…) lo deriva
-// dentro del panel a un usuario fijo (Marcos), que contesta desde ahí.
-export const BOT_ESCALATE_TO = process.env.BOT_ESCALATE_TO || 'marcos@yoga.com';
+// con [ESCALAR] a la única área ("Atención al cliente", la tiene Marcos), que
+// contesta desde el panel.
 
 const HANDOFF_INSTRUCTIONS = `
 

@@ -4,7 +4,7 @@
 // las fechas publicadas:
 // - Este WhatsApp ES el canal oficial (número nuevo; el anterior se perdió).
 // - Nada se manda al mail: lo difícil se deriva a Marcos dentro del panel
-//   (ver BOT_ESCALATE_TO en claude.service.js).
+//   (área única "Atención al cliente", asignada a Marcos).
 // Idempotente: busca por título y pisa; los ítems de OBSOLETE se desactivan.
 // Uso: node scripts/seed-kb-marcos.mjs [--dry]
 import dotenv from 'dotenv';

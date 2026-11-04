@@ -1,5 +1,5 @@
 import { parseReasonMarker } from './escalationReasons.js';
-import { generateBotResponse, BOT_ESCALATE_TO } from './claude.service.js';
+import { generateBotResponse } from './claude.service.js';
 import { endsWithQuestion } from './closeGuard.js';
 import { getKnowledgeBasePrompt } from './knowledge.service.js';
 import {
@@ -367,8 +367,8 @@ async function processIncomingMessageInternal(msg) {
   console.log(`[bot] Claude respondió (${botReply.length} chars) para ${from}`);
 
   const { reason: escalationReason, detail: escalationDetail, cleanText: textAfterReason } = parseReasonMarker(botReply);
-  // Cualquier [ESCALAR…] va al usuario de BOT_ESCALATE_TO (Marcos), no a un área.
-  const { shouldEscalate, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
+  // Con una sola área activa, [ESCALAR] va a esa área (Atención al cliente).
+  const { shouldEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
   const { shouldClose: closeMarker, cleanText: textAfterClose } = parseCloseMarker(textAfterEscalation);
   const { labels: botLabels, newLabels: botNewLabels, cleanText: textAfterLabels } = parseLabelMarkers(textAfterClose);
   const { tags: botTags, newTags: botNewTags, cleanText: textAfterTags } = parseCustomerTagMarkers(textAfterLabels);
@@ -421,11 +421,11 @@ async function processIncomingMessageInternal(msg) {
     await dispatchConversation(from, {
       status: 'escalated',
       humanMode: true,
-      assignedTo: BOT_ESCALATE_TO,
+      assignedTo: assignTo ?? null,
       escalationReason: escalationReason ?? 'otro',
       escalationDetail,
     });
-    console.log(`[bot] Escalando ${from} → ${BOT_ESCALATE_TO}`);
+    console.log(`[bot] Escalando ${from} → área: ${assignTo ?? 'sin asignar'}`);
     // El bot ya le avisó al cliente en su respuesta; solo si vino vacía mandamos el aviso.
     if (!cleanText.trim()) {
       const escalationMsg = 'Le pasé tu consulta al equipo y te responden por acá mismo 🙌';
