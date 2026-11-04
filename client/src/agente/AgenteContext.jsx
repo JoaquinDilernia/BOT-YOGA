@@ -28,7 +28,8 @@ export function AgenteProvider({ children }) {
       const t = await fetchSession();
       const data = await fetchMe(t);
       const last = getLastStore();
-      setMe({ stores: data.stores, pauta: Boolean(data.pauta), entradas: Boolean(data.entradas) });
+      // agente: false (USERS del Agente) → sin Pauta, con Reportes
+      setMe({ stores: data.stores, pauta: Boolean(data.pauta), agente: Boolean(data.pauta) && data.agente !== false, entradas: Boolean(data.entradas) });
       setStoreKey((cur) => cur || (data.stores.some((s) => s.key === last) ? last : data.stores[0]?.key || null));
       setToken(t);
       if (!data.stores.length) setError('No hay tiendas configuradas en el Agente');

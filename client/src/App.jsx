@@ -20,6 +20,7 @@ import Users         from './pages/Users.jsx';
 import Customers     from './pages/Customers.jsx';
 import Campaigns     from './pages/Campaigns.jsx';
 import Hub           from './pages/Hub.jsx';
+import { hasPanel } from './lib/panels.js';
 import { AgenteProvider } from './agente/AgenteContext.jsx';
 import AgenteSection, { AGENTE_SECTIONS } from './agente/AgenteSection.jsx';
 
@@ -40,19 +41,20 @@ function AppRoutes() {
   setLogoutHandler(logout);
 
   if (loading) return null;
-  const isAdmin = agent?.role === 'admin';
+  const both = hasPanel(agent, 'bot') && hasPanel(agent, 'agente');
+  const canAgente = hasPanel(agent, 'agente');
 
   return (
     <Routes>
-        <Route path="/login" element={agent ? <Navigate to={homePath(agent.role)} replace /> : <Login />} />
+        <Route path="/login" element={agent ? <Navigate to={homePath(agent)} replace /> : <Login />} />
 
-        {/* Hub: los admins eligen entre el bot y el Agente (turnos, envíos y pauta de TURNOS-YOGA) */}
-        <Route path="/hub" element={!agent ? <Navigate to="/login" replace /> : isAdmin ? <Hub /> : <Navigate to={homePath(agent.role)} replace />} />
+        {/* Hub: quien tiene los dos paneles (admins, o panels: ['bot','agente']) elige entre el bot y el Agente (turnos, envíos y pauta de TURNOS-YOGA) */}
+        <Route path="/hub" element={!agent ? <Navigate to="/login" replace /> : both ? <Hub /> : <Navigate to={homePath(agent)} replace />} />
         <Route
           path="/agente"
-          element={!agent ? <Navigate to="/login" replace /> : isAdmin
+          element={!agent ? <Navigate to="/login" replace /> : canAgente
             ? <AgenteProvider><Layout area="agente" /></AgenteProvider>
-            : <Navigate to={homePath(agent.role)} replace />}
+            : <Navigate to={homePath(agent)} replace />}
         >
           <Route index element={<Navigate to="/agente/lista" replace />} />
           {AGENTE_SECTIONS.map(s => <Route key={s.path} path={s.path} element={<AgenteSection section={s.path} />} />)}
@@ -60,8 +62,8 @@ function AppRoutes() {
         {/* Links guardados del panel viejo de TURNOS-YOGA (mismo dominio, yoga.techdi.com.ar) */}
         {AGENTE_SECTIONS.map(s => <Route key={`old-${s.path}`} path={`/${s.path}`} element={<Navigate to={`/agente/${s.path}`} replace />} />)}
 
-        <Route path="/" element={agent ? <Layout /> : <Navigate to="/login" replace />}>
-          <Route index element={<Navigate to={homePath(agent?.role)} replace />} />
+        <Route path="/" element={!agent ? <Navigate to="/login" replace /> : hasPanel(agent, 'bot') ? <Layout /> : <Navigate to="/agente/lista" replace />}>
+          <Route index element={<Navigate to={homePath(agent)} replace />} />
           <Route path="dashboard"     element={<Dashboard />} />
           <Route path="conversations" element={<Conversations />} />
           <Route path="customers"     element={<Customers />} />

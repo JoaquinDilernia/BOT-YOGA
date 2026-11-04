@@ -25,7 +25,9 @@ import mercadolibreWebhookRoutes from './routes/mercadolibre-webhook.routes.js';
 import agenteRoutes from './routes/agente.routes.js';
 import { seedAgentsIfNeeded } from './services/auth.service.js';
 import { seedAreasIfNeeded } from './services/area.service.js';
-import { requireAuth, requireAdmin, requireAtLeastAtencionCliente } from './middleware/requireAuth.js';
+import { requireAuth, requireAtLeastAtencionCliente, requirePanel } from './middleware/requireAuth.js';
+// Rutas del bot de WhatsApp: no para usuarios que solo tienen el panel del Agente
+const botOnly = requirePanel('bot');
 import { reconcileBotCarts } from './services/botCart.service.js';
 import { closeIdleBotConversations } from './services/botAutoClose.js';
 
@@ -69,8 +71,8 @@ app.use('/api/mercadolibre-webhook', mercadolibreWebhookRoutes);
 // Routes (protected)
 // Operador can access: conversations (filtered), labels
 // atencion_cliente + admin: all of the below
-app.use('/api/conversations', requireAuth, conversationRoutes);
-app.use('/api/labels', requireAuth, labelRoutes);
+app.use('/api/conversations', requireAuth, botOnly, conversationRoutes);
+app.use('/api/labels', requireAuth, botOnly, labelRoutes);
 
 // Requires at least atencion_cliente
 // Livianos y sin datos sensibles: los usa el panel de cualquier rol (operadores
@@ -79,27 +81,27 @@ app.use('/api/labels', requireAuth, labelRoutes);
 app.use('/api/config/brand',  requireAuth, brandRouter);
 app.use('/api/stats/waiting', requireAuth, waitingRouter);
 
-app.use('/api/knowledge',     requireAuth, requireAtLeastAtencionCliente, knowledgeRoutes);
-app.use('/api/config',        requireAuth, requireAtLeastAtencionCliente, configRoutes);
+app.use('/api/knowledge',     requireAuth, botOnly, requireAtLeastAtencionCliente, knowledgeRoutes);
+app.use('/api/config',        requireAuth, botOnly, requireAtLeastAtencionCliente, configRoutes);
 // Un operador que atiende una conversación derivada necesita ver el perfil
 // del cliente (contacto, notas) y poder actualizarlo — no es una acción de
 // administración global como el resto de este bloque.
-app.use('/api/customers',     requireAuth, customerRoutes);
-app.use('/api/test',          requireAuth, requireAtLeastAtencionCliente, testRoutes);
-app.use('/api/stats',         requireAuth, requireAtLeastAtencionCliente, statsRoutes);
-app.use('/api/quick-replies', requireAuth, requireAtLeastAtencionCliente, quickReplyRoutes);
+app.use('/api/customers',     requireAuth, botOnly, customerRoutes);
+app.use('/api/test',          requireAuth, botOnly, requireAtLeastAtencionCliente, testRoutes);
+app.use('/api/stats',         requireAuth, botOnly, requireAtLeastAtencionCliente, statsRoutes);
+app.use('/api/quick-replies', requireAuth, botOnly, requireAtLeastAtencionCliente, quickReplyRoutes);
 // Los operadores necesitan leer templates: Conversations.jsx los usa para el
 // modal de "nueva conversación" (disponible para cualquier rol) — la
 // restricción de escritura (crear/sincronizar/borrar) vive dentro del router.
-app.use('/api/templates',     requireAuth, templateRoutes);
-app.use('/api/costs',         requireAuth, requireAtLeastAtencionCliente, costsRoutes);
+app.use('/api/templates',     requireAuth, botOnly, templateRoutes);
+app.use('/api/costs',         requireAuth, botOnly, requireAtLeastAtencionCliente, costsRoutes);
 // El propio router ya restringe crear/editar/borrar a requireAdmin —
 // la lectura la necesita cualquier operador para derivar conversaciones.
-app.use('/api/areas',         requireAuth, areaRoutes);
-app.use('/api/campaigns',     requireAuth, requireAtLeastAtencionCliente, campaignRoutes);
-app.use('/api/tiendanube',    requireAuth, requireAtLeastAtencionCliente, tiendanubeRoutes);
-app.use('/api/mercadolibre',  requireAuth, requireAtLeastAtencionCliente, mercadolibreRoutes);
-app.use('/api/agente',        requireAuth, requireAdmin, agenteRoutes);
+app.use('/api/areas',         requireAuth, botOnly, areaRoutes);
+app.use('/api/campaigns',     requireAuth, botOnly, requireAtLeastAtencionCliente, campaignRoutes);
+app.use('/api/tiendanube',    requireAuth, botOnly, requireAtLeastAtencionCliente, tiendanubeRoutes);
+app.use('/api/mercadolibre',  requireAuth, botOnly, requireAtLeastAtencionCliente, mercadolibreRoutes);
+app.use('/api/agente',        requireAuth, requirePanel('agente'), agenteRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

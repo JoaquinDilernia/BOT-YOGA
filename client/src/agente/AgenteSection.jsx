@@ -17,7 +17,7 @@ export const AGENTE_SECTIONS = [
   { path: 'lista',      label: 'Turnos',     icon: List },
   { path: 'calendario', label: 'Calendario', icon: CalendarDays },
   { path: 'envios',     label: 'Envíos',     icon: Mail,      needs: 'entradas' },
-  { path: 'pauta',      label: 'Pauta',      icon: Megaphone, needs: 'pauta' },
+  { path: 'pauta',      label: 'Pauta',      icon: Megaphone, needs: 'agente' },
   { path: 'reportes',   label: 'Reportes',   icon: BarChart3, needs: 'pauta' },
 ];
 

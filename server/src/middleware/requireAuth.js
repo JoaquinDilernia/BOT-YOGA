@@ -1,4 +1,9 @@
 import { verifyToken, getAgentById } from '../services/auth.service.js';
+import { hasPanel } from '../services/panels.js';
+
+// Solo usuarios con ese panel ('bot' o 'agente', ver services/panels.js)
+export const requirePanel = (panel) => (req, res, next) =>
+  hasPanel(req.agent, panel) ? next() : res.status(403).json({ error: 'Tu usuario no tiene acceso a esta sección' });
 
 export async function requireAuth(req, res, next) {
   const header = req.headers.authorization;

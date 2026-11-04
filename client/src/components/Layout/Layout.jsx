@@ -5,6 +5,7 @@ import { useBrand } from '../../contexts/BrandContext';
 import { authFetch, BASE_URL } from '../../lib/api';
 import { useAgente } from '../../agente/AgenteContext.jsx';
 import { AGENTE_SECTIONS } from '../../agente/AgenteSection.jsx';
+import { hasPanel } from '../../lib/panels.js';
 import styles from './Layout.module.css';
 
 const COLLAPSED_KEY = 'bot_sidebar_collapsed';
@@ -63,7 +64,7 @@ function agenteGroups(me) {
 }
 
 // Inicio (Hub) arriba de todo para quien puede elegir entre Bot y Agente
-const HOME_GROUP = { id: 'inicio', items: [{ to: '/hub', label: 'Inicio', icon: IconHome, minRole: 'admin' }] };
+const HOME_GROUP = { id: 'inicio', items: [{ to: '/hub', label: 'Inicio', icon: IconHome, both: true }] };
 
 export function canAccess(role, minRole) {
   if (!minRole) return true;
@@ -78,10 +79,8 @@ export function botHomePath(role) {
   return canAccess(role, 'atencion_cliente') ? '/dashboard' : '/conversations';
 }
 
-// Después del login: los admins eligen en el Hub entre Bot y Agente; el resto va directo al bot.
-export function homePath(role) {
-  return role === 'admin' ? '/hub' : botHomePath(role);
-}
+// Después del login: con los dos paneles, el Hub; si no, directo al suyo (lib/panels.js).
+export { homePath } from '../../lib/panels.js';
 
 // area: 'bot' (default) o 'agente' — mismo menú y estilo, distintas secciones.
 export default function Layout({ area = 'bot' }) {
@@ -158,7 +157,7 @@ export default function Layout({ area = 'bot' }) {
 
         <nav className={styles.nav}>
           {navGroups.map(group => {
-            const items = group.items.filter(item => canAccess(agent?.role, item.minRole));
+            const items = group.items.filter(item => canAccess(agent?.role, item.minRole) && (!item.both || (hasPanel(agent, 'bot') && hasPanel(agent, 'agente'))));
             if (!items.length) return null;
             // El grupo de la pantalla actual siempre se ve, aunque esté cerrado.
             const hasActive = items.some(item => pathname.startsWith(item.to));

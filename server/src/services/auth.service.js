@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { createHash } from 'crypto';
 import { getDb } from './firebase.service.js';
+import { agentPanels } from './panels.js';
 
 const COLLECTION = 'bot-yoga_agents';
 
@@ -19,6 +20,7 @@ function toPublic(data) {
     name: data.name,
     role: data.role ?? 'operador',
     areaIds: data.areaIds ?? [],
+    panels: agentPanels(data),
   };
 }
 
@@ -70,12 +72,12 @@ export async function validateCredentials(email, password) {
   return toPublic(data);
 }
 
-export async function createUser({ email, name, password, role = 'operador', areaIds = [] }) {
+export async function createUser({ email, name, password, role = 'operador', areaIds = [], panels }) {
   const db = getDb();
   const id = docId(email);
   const existing = await db.collection(COLLECTION).doc(id).get();
   if (existing.exists) throw new Error('El email ya está registrado');
-  const user = { id, email: email.toLowerCase().trim(), name, role, areaIds, passwordHash: hashPassword(password), createdAt: new Date() };
+  const user = { id, email: email.toLowerCase().trim(), name, role, areaIds, ...(panels ? { panels } : {}), passwordHash: hashPassword(password), createdAt: new Date() };
   await db.collection(COLLECTION).doc(id).set(user);
   return toPublic(user);
 }
@@ -91,12 +93,13 @@ export async function deleteUser(id) {
   await db.collection(COLLECTION).doc(docId(id)).delete();
 }
 
-export async function updateUser(id, { name, role, areaIds } = {}) {
+export async function updateUser(id, { name, role, areaIds, panels } = {}) {
   const db = getDb();
   const update = { updatedAt: new Date() };
   if (name) update.name = name;
   if (role) update.role = role;
   if (areaIds !== undefined) update.areaIds = areaIds;
+  if (panels !== undefined) update.panels = panels;
   await db.collection(COLLECTION).doc(docId(id)).update(update);
   const doc = await db.collection(COLLECTION).doc(docId(id)).get();
   return toPublic(doc.data());
