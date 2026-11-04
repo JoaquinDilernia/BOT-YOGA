@@ -1,5 +1,5 @@
 import { parseReasonMarker } from './escalationReasons.js';
-import { generateBotResponse, BOT_AUTONOMOUS } from './claude.service.js';
+import { generateBotResponse, BOT_ESCALATE_TO } from './claude.service.js';
 import { endsWithQuestion } from './closeGuard.js';
 import { getKnowledgeBasePrompt } from './knowledge.service.js';
 import {
@@ -61,20 +61,6 @@ export function isWithinBusinessHours(botConfig = {}) {
   const days   = botConfig.businessDays        ?? [1, 2, 3, 4, 5]; // lun-vie
 
   return days.includes(day) && timeMin >= startH * 60 && timeMin < endH * 60;
-}
-
-function buildEscalationMessage(areaName, botConfig = {}) {
-  const within = isWithinBusinessHours(botConfig);
-  const startH = botConfig.businessHoursStart ?? 9;
-  const endH   = botConfig.businessHoursEnd   ?? 18;
-  const hoursStr = `${startH}:00 a ${endH}:00hs, lunes a viernes`;
-  const label = areaName ? `*${areaName}*` : 'nuestro equipo';
-
-  if (within) {
-    return `Tu consulta fue derivada a ${label} 👋\n\nUn agente va a atenderte en breve. Por favor aguardá unos minutos.\n\n🕐 Horario de atención: ${hoursStr}.`;
-  } else {
-    return `Tu consulta fue derivada a ${label} 👋\n\nEn este momento estamos fuera del horario de atención (${hoursStr}). Tu mensaje fue registrado y un agente te va a responder cuando retomemos.\n\n¡Gracias por tu paciencia!`;
-  }
 }
 
 function parseEscalationMarker(text, areas = []) {
@@ -371,9 +357,7 @@ async function processIncomingMessageInternal(msg) {
     });
   } catch (err) {
     console.error(`[bot] Claude falló definitivamente para ${from} tras reintentos:`, err.message);
-    const fallbackMsg = BOT_AUTONOMOUS
-      ? 'Uy, se me complicó responderte recién 🙏 ¿Me escribís de nuevo en un ratito? Mientras tanto tenés fechas y entradas en www.yogaypatitas.com'
-      : 'Estamos con un poquito de demora en este momento, ¡ya te contestamos! 🙏';
+    const fallbackMsg = 'Uy, se me complicó responderte recién 🙏 ¿Me escribís de nuevo en un ratito? Mientras tanto tenés fechas y entradas en www.yogaypatitas.com.ar';
     await appendMessage(from, { role: 'assistant', content: fallbackMsg });
     await setUrgentFlag(from, true).catch(() => {});
     if (channel === 'whatsapp') await sendWhatsAppMessage(from, fallbackMsg).catch(() => {});
@@ -383,10 +367,8 @@ async function processIncomingMessageInternal(msg) {
   console.log(`[bot] Claude respondió (${botReply.length} chars) para ${from}`);
 
   const { reason: escalationReason, detail: escalationDetail, cleanText: textAfterReason } = parseReasonMarker(botReply);
-  const { shouldEscalate: wantsEscalate, assignTo, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
-  // Bot 100% autónomo: el marcador se limpia del texto pero nunca pasa a humano.
-  const shouldEscalate = wantsEscalate && !BOT_AUTONOMOUS;
-  if (wantsEscalate && BOT_AUTONOMOUS) console.log(`[bot] [ESCALAR] ignorado para ${from}: bot autónomo`);
+  // Cualquier [ESCALAR…] va al usuario de BOT_ESCALATE_TO (Marcos), no a un área.
+  const { shouldEscalate, cleanText: textAfterEscalation } = parseEscalationMarker(textAfterReason, areas);
   const { shouldClose: closeMarker, cleanText: textAfterClose } = parseCloseMarker(textAfterEscalation);
   const { labels: botLabels, newLabels: botNewLabels, cleanText: textAfterLabels } = parseLabelMarkers(textAfterClose);
   const { tags: botTags, newTags: botNewTags, cleanText: textAfterTags } = parseCustomerTagMarkers(textAfterLabels);
@@ -439,20 +421,21 @@ async function processIncomingMessageInternal(msg) {
     await dispatchConversation(from, {
       status: 'escalated',
       humanMode: true,
-      assignedTo: assignTo ?? null,
+      assignedTo: BOT_ESCALATE_TO,
       escalationReason: escalationReason ?? 'otro',
       escalationDetail,
     });
-    console.log(`[bot] Escalando ${from} → área: ${assignTo ?? 'sin asignar'}`);
-
-    const areaName = areas.find(a => a.id === assignTo)?.name ?? null;
-    const escalationMsg = buildEscalationMessage(areaName, botConfig);
-    try {
-      await appendMessage(from, { role: 'assistant', content: escalationMsg });
-      if (channel === 'whatsapp') await sendWhatsAppMessage(from, escalationMsg);
-      else if (channel === 'instagram') await sendInstagramMessage(from, escalationMsg);
-    } catch (err) {
-      console.error('[bot] Error enviando mensaje de escalación:', err.message);
+    console.log(`[bot] Escalando ${from} → ${BOT_ESCALATE_TO}`);
+    // El bot ya le avisó al cliente en su respuesta; solo si vino vacía mandamos el aviso.
+    if (!cleanText.trim()) {
+      const escalationMsg = 'Le pasé tu consulta al equipo y te responden por acá mismo 🙌';
+      try {
+        await appendMessage(from, { role: 'assistant', content: escalationMsg });
+        if (channel === 'whatsapp') await sendWhatsAppMessage(from, escalationMsg);
+        else if (channel === 'instagram') await sendInstagramMessage(from, escalationMsg);
+      } catch (err) {
+        console.error('[bot] Error enviando mensaje de escalación:', err.message);
+      }
     }
   } else if (shouldClose) {
     await updateConversationStatus(from, 'resolved');

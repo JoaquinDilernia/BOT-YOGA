@@ -29,56 +29,34 @@ function logUsage(usage, type) {
   }).catch(err => console.error('[claude] Error logging usage to Firestore:', err.message));
 }
 
-function buildEscalationInstructions(areas = []) {
-  if (!areas.length) {
-    return `
-IMPORTANTE — ESCALADA: Si la consulta requiere atención humana y no podés resolverla, usá el marcador [ESCALAR] en una línea separada.
+// Yoga y Patitas (2026-11-04): nada se manda al mail. El bot resuelve lo que
+// puede y lo difícil (cumpleaños, devoluciones, cambios, reclamos…) lo deriva
+// dentro del panel a un usuario fijo (Marcos), que contesta desde ahí.
+export const BOT_ESCALATE_TO = process.env.BOT_ESCALATE_TO || 'marcos@yoga.com';
+
+const HANDOFF_INSTRUCTIONS = `
+
+IMPORTANTE — QUÉ RESOLVÉS VOS Y QUÉ DERIVÁS: Resolvé vos todo lo que se pueda con la información de la empresa y las herramientas (fechas, sedes, horarios, precios, lugares libres, carrito, gift cards, cómo es la clase, adopción, estado de un pedido). Nunca mandes al cliente a escribir un mail ni a otro canal: todo se resuelve por este chat.
+Derivá al equipo (sigue la charla acá mismo) cuando:
+- Cumpleaños, eventos privados, grupos o presupuestos especiales.
+- Devoluciones, cancelaciones o reintegros.
+- Cambios de fecha u horario de una compra ya hecha.
+- La entrada o el código de gift card no le llegó, o tiene un problema con el canje o con el pago.
+- Reclamos, enojo, o pide hablar con una persona.
+- Cualquier cosa que no puedas resolver con la información que tenés.
+Antes de derivar, juntá en la charla lo que el equipo va a necesitar (nombre, número de pedido o mail de la compra, fecha/horario, y qué necesita), sin pedir datos de tarjeta ni claves.
+
+Para derivar, usá el marcador [ESCALAR] en una línea separada. El texto de tu respuesta le llega al cliente: avisale que le pasás la consulta al equipo y que le van a responder por este mismo chat (puede demorar un poco). El marcador es invisible para el cliente. Nunca prometas el resultado (ni devoluciones ni cambios): eso lo decide el equipo.
+Ejemplo:
+"¡Gracias! Ya le paso tu consulta al equipo y te responden por acá mismo 🙌 Puede demorar un poquito.
+[ESCALAR]"
 
 IMPORTANTE — MOTIVO DE LA DERIVACIÓN: Cada vez que derivás, agregá también en una línea separada [MOTIVO:categoria|detalle], donde detalle es una frase corta (máx. 12 palabras) y categoria es una de estas:
 ${reasonPromptLines()}
-Ejemplo: "[MOTIVO:pedido_envio|el pedido 1234 no llegó y pasaron 10 días]". El cliente no lo ve.
+Ejemplo: "[MOTIVO:pedido_envio|la entrada del pedido 1234 no le llegó]". El cliente no lo ve.
 
 IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR]. Si tu respuesta termina con una pregunta, NO uses [CERRAR] — estás esperando que el cliente conteste.
-Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."`;
-  }
-
-  const lines = areas.map(a => `- [ESCALAR_${a.id.toUpperCase()}] — ${a.description}`).join('\n');
-
-  return `
-IMPORTANTE — ESCALADA: Cuando la consulta requiere atención humana, usá UNO de estos marcadores en una línea separada (NUNCA pongas otro texto en esa misma línea):
-${lines}
-
-Si la consulta requiere atención humana pero ninguna de las áreas de arriba encaja bien, usá [ESCALAR] sin especificar — no fuerces una de ellas si ninguna es la correcta.
-
-El texto de tu respuesta (antes o después del marcador) es lo que le llega al cliente — avisale que lo derivás y que puede haber una pequeña demora. El marcador es invisible para el cliente.
-Ejemplo correcto:
-"Dale, te paso con el equipo que te puede ayudar mejor con esto. Puede tardar unos minutos, ¡pero te van a responder enseguida!
-[ESCALAR_${areas[0].id.toUpperCase()}]"
-
-IMPORTANTE — MOTIVO DE LA DERIVACIÓN: Cada vez que derivás, agregá también en una línea separada [MOTIVO:categoria|detalle], donde detalle es una frase corta (máx. 12 palabras) y categoria es una de estas:
-${reasonPromptLines()}
-Ejemplo: "[MOTIVO:pedido_envio|el pedido 1234 no llegó y pasaron 10 días]". El cliente no lo ve.
-
-IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR].
-Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."
-Usá [CERRAR] solo cuando estés seguro de que la conversación terminó. Si tu respuesta termina con una pregunta ("¿Te ayudo con algo más?", "¿buscás algo específico?"), NO uses [CERRAR] — estás esperando que el cliente conteste.`;
-}
-
-// Yoga y Patitas pidió un bot 100% autónomo (2026-11-03): nadie contesta a
-// mano en este chat. El bot no escala nunca; lo administrativo va por mail
-// (ver KB). bot.service ignora cualquier [ESCALAR] que igual aparezca.
-export const BOT_AUTONOMOUS = true;
-
-const AUTONOMOUS_INSTRUCTIONS = `
-
-IMPORTANTE — SOS EL ÚNICO QUE ATIENDE ESTE CHAT: No hay personas del equipo respondiendo por acá, así que nunca digas que vas a derivar, que "te paso con alguien", que "el equipo te va a escribir" ni que alguien lo va a contactar. Resolvé vos todo con la información de la empresa y las herramientas.
-- Si es un tema que se gestiona por otro canal (devoluciones, cambios de fecha, no poder asistir, entrada que no llegó, cumpleaños/eventos, colaboraciones), explicale lo que corresponde y pasale ese canal (el mail) con los datos que tiene que mandar.
-- Si pide hablar con una persona o está enojado, mostrá empatía, ayudalo en lo que puedas y pasale el mail hola@yogaypatitas.com para que lo vea el equipo.
-- Si no tenés la información, decilo con honestidad y dale lo más útil: la web o el mail.
-- Siempre que se pueda, llevá la charla hacia la compra: fechas con buscar_clases y el carrito con armar_carrito.
-
-IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR]. Si tu respuesta termina con una pregunta, NO uses [CERRAR] — estás esperando que el cliente conteste.
-Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos cuando quieras."`;
+Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos por acá cuando quieras."`;
 
 // Extrae el texto de la respuesta recorriendo los bloques de `content` en vez
 // de asumir que el bloque [0] es siempre de tipo texto — con claude-sonnet-5,
@@ -242,7 +220,7 @@ function buildSystemPrompt(botConfig = {}, knowledgeBase, orderInfo, orderRef, c
   // el panel y estas reglas tienen que valer siempre.
   prompt += `\n\nREGLA — LOS LUGARES SE COMPRAN EN LA WEB: Por este chat no se reservan, apartan ni guardan lugares y no se toman pagos. Las clases (y las gift cards) se compran únicamente en la tienda online. Nunca digas que "anotaste" a alguien ni que le guardás un lugar — si quiere ir, mandale el link de la clase o, mejor, el carrito armado con armar_carrito: la compra la termina en la web y ahí queda confirmado su lugar.`;
   prompt += `\n\nFORMATO: Escribís para WhatsApp. Para negrita usá UN solo asterisco (*así*), nunca dos (**así**) — no uses títulos con # ni otro markdown.`;
-  prompt += BOT_AUTONOMOUS ? AUTONOMOUS_INSTRUCTIONS : buildEscalationInstructions(areas);
+  prompt += HANDOFF_INSTRUCTIONS;
   prompt += `\n\nIMPORTANTE — MENSAJES DEL EQUIPO: Los mensajes que empiezan con "${AGENT_PREFIX}" los escribió alguien del equipo, no vos. Tomá lo que dicen como hecho (si dicen que ya resolvieron algo, está resuelto). Si el cliente solo agradece o confirma algo que el equipo ya resolvió, no vuelvas a derivar: respondé corto y cerrá con [CERRAR]. Nunca repitas ese prefijo en tu respuesta.`;
   if (knowledgeBase) {
     prompt += `\n\n--- INFORMACIÓN DE LA EMPRESA ---\n${knowledgeBase}`;
