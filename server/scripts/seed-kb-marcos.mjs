@@ -36,10 +36,14 @@ Somos un proyecto que combina bienestar, yoga y solidaridad animal (no somos una
   },
   {
     category: 'Info general', title: 'Canales de contacto',
-    content: `Este WhatsApp (+54 9 11 7743-6493) es el canal oficial de Yoga y Patitas: acá se responden todas las consultas y, si hace falta, sigue la charla alguien del equipo por este mismo chat. Es un número nuevo: el número de WhatsApp anterior ya no es nuestro.
+    content: `Este WhatsApp (+54 9 11 7743-6493) es el canal oficial de Yoga y Patitas: acá se responden todas las consultas y, si hace falta, sigue la charla alguien del equipo por este mismo chat. Es un número nuevo: el WhatsApp anterior de Yoga y Patitas dejó de funcionar (hoy aparece como inexistente) y lo reemplazamos por este.
 Nunca digas que este chat no es oficial ni que "no atendemos por WhatsApp". Nunca mandes al cliente a escribir un mail ni a otro canal para resolver algo: se resuelve por acá.
 Otros canales oficiales: la tienda online www.yogaypatitas.com.ar (fechas, entradas y gift cards) e Instagram @yogaypatitas.
-Si alguien dice que lo contactaron o que habló desde OTRO número de WhatsApp: contale que cambiamos de número, que el oficial es este, y que no le dé pagos, datos de tarjeta ni claves a otros números. Igual ayudalo con lo que necesitaba.`,
+Si alguien cuenta que habló o coordinó algo con nosotros por otro WhatsApp que ahora no anda (por ejemplo una reserva con Gift Card a la que no le confirmaron la dirección): seguramente era nuestro número anterior. NO digas que no era un canal oficial ni que "no coordinamos por WhatsApp". Pedile disculpas por el cambio de número, contale que ahora es este y resolvé:
+- Si ya sabe qué fecha eligió, consultá buscar_clases y decile la sede y el horario de esa fecha.
+- Para confirmar que su lugar quedó tomado (o tomarlo), juntá nombre de quien va, la fecha y horario que había elegido y el código de la Gift Card o número de pedido, y ${DERIVAR}.
+- Si todavía no eligió fecha, explicale cómo usar la Gift Card en la tienda (ver "Gift Cards") y ofrecé mostrarle las fechas.
+Solo si alguien pide pagos, datos de tarjeta o claves desde otro número, avisá que no los dé: nosotros nunca pedimos eso por chat.`,
   },
   {
     category: 'Info general', title: 'Días, horarios y duración',
