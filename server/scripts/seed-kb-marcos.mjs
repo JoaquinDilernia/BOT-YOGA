@@ -41,7 +41,7 @@ Nunca digas que este chat no es oficial ni que "no atendemos por WhatsApp". Nunc
 Otros canales oficiales: la tienda online www.yogaypatitas.com.ar (fechas, entradas y gift cards) e Instagram @yogaypatitas.
 Si alguien cuenta que habló o coordinó algo con nosotros por otro WhatsApp que ahora no anda (por ejemplo una reserva con Gift Card a la que no le confirmaron la dirección): seguramente era nuestro número anterior. NO digas que no era un canal oficial ni que "no coordinamos por WhatsApp". Pedile disculpas por el cambio de número, contale que ahora es este y resolvé:
 - Si ya sabe qué fecha eligió, consultá buscar_clases y decile la sede y el horario de esa fecha.
-- Para confirmar que su lugar quedó tomado (o tomarlo), juntá nombre de quien va, la fecha y horario que había elegido y el código de la Gift Card o número de pedido, y ${DERIVAR}.
+- Para confirmar que su lugar quedó tomado (o tomarlo), pedí el código de la Gift Card o el número de pedido y la fecha que había elegido, y ${DERIVAR}.
 - Si todavía no eligió fecha, explicale cómo usar la Gift Card en la tienda (ver "Gift Cards") y ofrecé mostrarle las fechas.
 Solo si alguien pide pagos, datos de tarjeta o claves desde otro número, avisá que no los dé: nosotros nunca pedimos eso por chat.`,
   },
@@ -153,11 +153,11 @@ Si solo quiere regalar una clase de cumpleaños a una persona, ofrecé la "Gift 
   },
   {
     category: 'Políticas', title: 'Cambios, cancelaciones y devoluciones',
-    content: `Esto lo resuelve el equipo: vos explicás la política, juntás los datos y ${DERIVAR}. Nunca prometas una devolución ni un cambio.
-- Cambio de fecha u horario: se puede pedir con al menos 5 días hábiles de anticipación, sujeto a disponibilidad. Juntá número de pedido (o mail de la compra), la fecha que tiene y a cuál quiere pasar (podés mostrarle opciones con buscar_clases).
+    content: `Esto lo resuelve el equipo: vos explicás la política en una o dos líneas, pedís SOLO el número de pedido o el mail de la compra (y el motivo o la fecha nueva si no lo dijo) y ${DERIVAR}. Apenas tengas el pedido o el mail, derivá: no pidas horario, cantidad ni otros datos, el equipo los ve en el pedido. Nunca prometas una devolución ni un cambio.
+- Cambio de fecha u horario: se puede pedir con al menos 5 días hábiles de anticipación, sujeto a disponibilidad. Si quiere, mostrale opciones de fechas con buscar_clases.
 - Cambiar de turno el mismo día: sujeto a disponibilidad, no se garantiza.
-- Devoluciones: se evalúan según las condiciones de compra y la normativa de defensa del consumidor (incluido el derecho de arrepentimiento en compras online). No poder asistir, faltar o llegar tarde no da derecho automático a devolución. Juntá nombre y apellido, número de pedido (o mail de la compra), fecha y horario, cantidad de entradas y el motivo.
-- Si se enferma o no puede ir: mostrá empatía, juntá los mismos datos y derivá.
+- Devoluciones: se evalúan según las condiciones de compra y la normativa de defensa del consumidor (incluido el derecho de arrepentimiento en compras online). No poder asistir, faltar o llegar tarde no da derecho automático a devolución.
+- Si se enferma o no puede ir: mostrá empatía, pedí el pedido o el mail y derivá.
 - Si la organización cancela una clase, se comunica y se informan las alternativas.
 - Un cambio de sede no es una cancelación.
 - El plazo de una devolución depende del medio de pago y la entidad financiera.`,
