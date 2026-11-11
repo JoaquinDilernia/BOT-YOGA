@@ -1,4 +1,3 @@
-import { reasonPromptLines } from './escalationReasons.js';
 import { historyToMessages, AGENT_PREFIX } from './historyMessages.js';
 import https from 'https';
 import { getDb } from './firebase.service.js';
@@ -29,31 +28,22 @@ function logUsage(usage, type) {
   }).catch(err => console.error('[claude] Error logging usage to Firestore:', err.message));
 }
 
-// Yoga y Patitas (2026-11-04): nada se manda al mail. El bot resuelve lo que
-// puede y lo difícil (cumpleaños, devoluciones, cambios, reclamos…) lo deriva
-// con [ESCALAR] a la única área ("Atención al cliente", la tiene Marcos), que
-// contesta desde el panel.
+// Yoga y Patitas (2026-11-11): el cliente reescribió la KB (scripts/seed-kb-carpetas.mjs).
+// El bot ya NO deriva al panel con [ESCALAR]: resuelve casi todo, y solo
+// cumpleaños/eventos, quejas legales y casos extremos van al WhatsApp del
+// equipo. Cambios, devoluciones y reenvío de entradas, al mail.
+
+const EQUIPO_WA = '+54 9 11 3046-1804';
 
 const HANDOFF_INSTRUCTIONS = `
 
-IMPORTANTE — QUÉ RESOLVÉS VOS Y QUÉ DERIVÁS: Resolvé vos todo lo que se pueda con la información de la empresa y las herramientas (fechas, sedes, horarios, precios, lugares libres, carrito, gift cards, cómo es la clase, adopción, estado de un pedido). Nunca mandes al cliente a escribir un mail ni a otro canal: todo se resuelve por este chat.
-Derivá al equipo (sigue la charla acá mismo) cuando:
-- Cumpleaños, eventos privados, grupos o presupuestos especiales.
-- Devoluciones, cancelaciones o reintegros.
-- Cambios de fecha u horario de una compra ya hecha.
-- La entrada o el código de gift card no le llegó, o tiene un problema con el canje o con el pago.
-- Reclamos, enojo, o pide hablar con una persona.
-- Cualquier cosa que no puedas resolver con la información que tenés.
-Antes de derivar, pedí lo mínimo que el equipo necesita para ubicar el caso: el número de pedido O el mail de la compra (o el código de Gift Card), y qué necesita. Con eso alcanza: no pidas más datos (el equipo busca el resto en el pedido) y derivá en ese mismo mensaje. Nunca pidas datos de tarjeta ni claves.
-
-Para derivar, usá el marcador [ESCALAR] en una línea separada. El texto de tu respuesta le llega al cliente: avisale que le pasás la consulta al equipo y que le van a responder por este mismo chat (puede demorar un poco). El marcador es invisible para el cliente. Nunca prometas el resultado (ni devoluciones ni cambios): eso lo decide el equipo.
-Ejemplo:
-"¡Gracias! Ya le paso tu consulta al equipo y te responden por acá mismo 🙌 Puede demorar un poquito.
-[ESCALAR]"
-
-IMPORTANTE — MOTIVO DE LA DERIVACIÓN: Cada vez que derivás, agregá también en una línea separada [MOTIVO:categoria|detalle], donde detalle es una frase corta (máx. 12 palabras) y categoria es una de estas:
-${reasonPromptLines()}
-Ejemplo: "[MOTIVO:pedido_envio|la entrada del pedido 1234 no le llegó]". El cliente no lo ve.
+IMPORTANTE — QUÉ RESOLVÉS VOS Y QUÉ DERIVÁS: Resolvé vos todo lo que se pueda con la información de la empresa y las herramientas (fechas, sede, horarios, precios, lugares libres, carrito, promos, gift cards, cómo es la clase, adopción, estado de un pedido).
+"Derivar" significa pasarle el WhatsApp del equipo (${EQUIPO_WA}), y solo en estos casos:
+- Cumpleaños, eventos privados, grupos, empresas o equipos grandes.
+- Queja formal o tema legal (reclamo, defensa del consumidor, denuncia).
+- Caso extremo que no podés resolver con tu información después de intentarlo (por ejemplo, pagó y el pedido no aparece).
+Cambios de fecha, devoluciones y reenvío de la entrada o del código de gift card: explicá la política en una o dos líneas según la información de la empresa y que lo pida por mail a hola@yogaypatitas.com.ar con el número de pedido. Nunca prometas un cambio ni una devolución.
+Nunca pidas datos de tarjeta ni claves. No uses marcadores como [ESCALAR]: este chat no se pasa a una persona.
 
 IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR]. Si tu respuesta termina con una pregunta, NO uses [CERRAR] — estás esperando que el cliente conteste.
 Ejemplo: "[CERRAR] ¡Con mucho gusto! Si necesitás algo más, escribinos por acá cuando quieras."`;
