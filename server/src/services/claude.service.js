@@ -33,7 +33,7 @@ function logUsage(usage, type) {
 // cumpleaños/eventos, quejas legales y casos extremos van al WhatsApp del
 // equipo. Cambios, devoluciones y reenvío de entradas, al mail.
 
-const EQUIPO_WA = '+54 9 11 3046-1804';
+const EQUIPO_WA = '+54 9 11 3175-1110';
 
 const HANDOFF_INSTRUCTIONS = `
 

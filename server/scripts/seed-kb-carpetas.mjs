@@ -1,7 +1,7 @@
 // KB del bot de Yoga y Patitas desde "TeDI_Yoga_y_Patitas_Carpetas.md" (2026-11-11):
 // la versión que el cliente reescribió con IA, 16 carpetas. Cambios de fondo respecto
 // de seed-kb-marcos.mjs: una sola sede (Ecuador 1511), promo 3x2 de noviembre, Gift
-// Card navideña y derivación al WhatsApp del equipo (+54 9 11 3046-1804) en vez de
+// Card navideña y derivación al WhatsApp del equipo (+54 9 11 3175-1110) en vez de
 // [ESCALAR] para cumpleaños/eventos, quejas legales y casos extremos.
 // Los [COMPLETAR] del archivo se llenaron con lo que ya estaba confirmado en la KB
 // anterior y en las tarjetas que el cliente editó a mano el 11/11 (link de la gift
@@ -29,7 +29,7 @@ db.settings({ preferRest: true });
 const DRY = process.argv.includes('--dry');
 const COLLECTION = 'bot-yoga_knowledge_base';
 
-const EQUIPO = '+54 9 11 3046-1804';
+const EQUIPO = '+54 9 11 3175-1110';
 const GIFT_NAVIDAD_URL = 'https://yogaypatitas.com.ar/productos/gift-card-copia-zzsnr/';
 
 const ITEMS = [
