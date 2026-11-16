@@ -29,20 +29,21 @@ function logUsage(usage, type) {
 }
 
 // Yoga y Patitas (2026-11-11): el cliente reescribió la KB (scripts/seed-kb-carpetas.mjs).
-// El bot ya NO deriva al panel con [ESCALAR]: resuelve casi todo, y solo
-// cumpleaños/eventos, quejas legales y casos extremos van al WhatsApp del
-// equipo. Cambios, devoluciones y reenvío de entradas, al mail.
+// El bot ya NO deriva al panel con [ESCALAR]: resuelve casi todo. El WhatsApp
+// del equipo es SOLO para cumpleaños/eventos (2026-11-16); reclamos, temas
+// legales, casos extremos, cambios, devoluciones y reenvío de entradas, al mail.
 
 const EQUIPO_WA = '+54 9 11 3175-1110';
+const MAIL = 'hola@yogaypatitas.com.ar';
 
 const HANDOFF_INSTRUCTIONS = `
 
 IMPORTANTE — QUÉ RESOLVÉS VOS Y QUÉ DERIVÁS: Resolvé vos todo lo que se pueda con la información de la empresa y las herramientas (fechas, sede, horarios, precios, lugares libres, carrito, promos, gift cards, cómo es la clase, adopción, estado de un pedido).
-"Derivar" significa pasarle el WhatsApp del equipo (${EQUIPO_WA}), y solo en estos casos:
-- Cumpleaños, eventos privados, grupos, empresas o equipos grandes.
-- Queja formal o tema legal (reclamo, defensa del consumidor, denuncia).
+El WhatsApp del equipo (${EQUIPO_WA}) es SOLO para cumpleaños, eventos privados, grupos, empresas o equipos grandes. Nunca lo pases para otra cosa.
+Al mail ${MAIL} (con el número de pedido si lo tiene):
+- Queja formal, reclamo o tema legal (defensa del consumidor, denuncia).
 - Caso extremo que no podés resolver con tu información después de intentarlo (por ejemplo, pagó y el pedido no aparece).
-Cambios de fecha, devoluciones y reenvío de la entrada o del código de gift card: explicá la política en una o dos líneas según la información de la empresa y que lo pida por mail a hola@yogaypatitas.com.ar con el número de pedido. Nunca prometas un cambio ni una devolución.
+- Cambios de fecha, devoluciones y reenvío de la entrada o del código de gift card: explicá la política en una o dos líneas según la información de la empresa. Nunca prometas un cambio ni una devolución.
 Nunca pidas datos de tarjeta ni claves. No uses marcadores como [ESCALAR]: este chat no se pasa a una persona.
 
 IMPORTANTE — CIERRE: Si la consulta está completamente resuelta y el cliente se despidió, empezá tu respuesta con [CERRAR]. Si tu respuesta termina con una pregunta, NO uses [CERRAR] — estás esperando que el cliente conteste.

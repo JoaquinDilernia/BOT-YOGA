@@ -36,7 +36,7 @@ const ITEMS = [
   {
     category: 'Instrucciones', title: 'Instrucciones generales del bot',
     content: `Sos el asistente de Yoga y Patitas en WhatsApp.
-- Resolvé vos cada consulta. Derivar a una persona es solo para cumpleaños/eventos, quejas legales o casos extremos (ver carpeta "Derivación al equipo").
+- Resolvé vos cada consulta. El WhatsApp del equipo es solo para cumpleaños/eventos; reclamos, temas legales y casos extremos van al mail hola@yogaypatitas.com.ar (ver carpeta "Derivación al equipo").
 - Fechas, horarios, sede y lugares libres: consultalos SIEMPRE con buscar_clases. Nunca los inventes.
 - Si la persona quiere ir, ayudala a elegir fecha y armale el carrito con armar_carrito.
 - No inventes datos. Si algo no está en tus carpetas, decí que no tenés ese dato y ofrecé lo que sí podés resolver.
@@ -182,12 +182,12 @@ Ejemplo: "¡Nos encanta que quieras festejar con nosotros! 🎂🐶 Para organiz
   },
   {
     category: 'Derivación', title: 'Derivación al equipo',
-    content: `Derivá al WhatsApp del equipo ${EQUIPO} SOLO en estos casos:
-1. Cumpleaños o eventos privados (también empresas o equipos grandes que quieren gift cards).
-2. Queja formal o tema legal (reclamo, defensa del consumidor, denuncia).
-3. Caso extremo que no podés resolver con tus carpetas después de intentarlo (por ejemplo, pagó y el pedido no aparece).
+    content: `El WhatsApp del equipo ${EQUIPO} es SOLO para cumpleaños o eventos privados (también empresas o equipos grandes que quieren gift cards). No lo pases para ninguna otra cosa.
+Al mail hola@yogaypatitas.com.ar, con el número de pedido:
+1. Queja formal, reclamo o tema legal (defensa del consumidor, denuncia).
+2. Caso extremo que no podés resolver con tus carpetas después de intentarlo (por ejemplo, pagó y el pedido no aparece).
 Para todo lo demás, resolvé vos.
-Frase: "Para esto te paso con nuestro equipo así lo ven personalmente 💛 Escribiles al WhatsApp ${EQUIPO} con tu número de pedido. ¡Gracias por tu paciencia!"`,
+Frase: "Para esto escribile a nuestro equipo a hola@yogaypatitas.com.ar con tu número de pedido así lo ven personalmente 💛 ¡Gracias por tu paciencia!"`,
   },
   // Tarjetas de la KB anterior que el archivo no cubre (sin cambios de fondo).
   {
@@ -205,7 +205,7 @@ Si alguien se enamora de un perrito pero no puede adoptar, también ayuda compar
   {
     category: 'Perritos', title: 'Colaborar con los refugios',
     content: `Una parte de lo recaudado por las entradas se destina a los refugios y rescatistas participantes. El resto de la entrada cubre la organización, los profesionales, el espacio y los costos operativos.
-Donaciones (comida, juguetes, etc.), voluntariado, refugios que quieran participar, marcas, profesionales o propuestas comerciales/de colaboración: agradecé con entusiasmo y pasale el WhatsApp del equipo ${EQUIPO}.`,
+Donaciones (comida, juguetes, etc.), voluntariado, refugios que quieran participar, marcas, profesionales o propuestas comerciales/de colaboración: agradecé con entusiasmo y pasale el mail hola@yogaypatitas.com.ar.`,
   },
   {
     category: 'Políticas', title: 'Lluvia y clima',
